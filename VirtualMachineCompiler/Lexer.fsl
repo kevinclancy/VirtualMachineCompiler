@@ -1,0 +1,77 @@
+﻿{
+module Lexer
+
+// SUPER IMPORTANT SUPER IMPORTANT SUPER IMPORTANT
+// Don't forget to run fslex with --unicode. Otherwise
+// you will get confusing errors.
+
+// Opens methods related to fslex.exe
+open FSharp.Text.Lexing
+open Parser
+open System
+//open System.Text
+
+let mutable lastComment = ""
+
+let newline (lexbuf : LexBuffer<_>) = lexbuf.EndPos <- lexbuf.EndPos.NextLine in
+
+let lexeme lexbuf = LexBuffer<byte>.LexemeString lexbuf in
+
+/// Removes leading and trailing quotations from a quoted string
+let removeQuotes (str : string) : string =
+    str.Substring(1,str.Length-2)
+
+}
+
+let digit = ['0'-'9']
+let whitespace = [' ' '\t' ]
+let newline = ('\n' | '\r' '\n')
+
+rule token = parse
+| newline        { newline lexbuf ; lastComment <- "" ; token lexbuf  }
+| whitespace     { token lexbuf }
+| "("            { LPAREN }
+| ")"            { RPAREN }
+| "{"            { LBRACK }
+| "}"            { RBRACK }
+| "["            { LSQUAREBRACK }
+| "]"            { RSQUAREBRACK }
+| "+"            { PLUS }
+| "-"            { MINUS }
+| "*"            { TIMES }
+| "=="           { EQ }
+| "<="			 { LEQ }
+| ">="           { GEQ }
+| "<"            { LT }
+| ">"            { GT }
+| "<-"           { GETS }
+| ";"            { SEMICOLON }
+| "if"           { IF }
+| "else"         { ELSE }
+| "while"        { WHILE }
+| "for"          { FOR }
+| "switch"       { SWITCH }
+| "case"         { CASE }
+| "default"      { DEFAULT }
+| "break"        { BREAK }
+| "return"       { RETURN }
+| ":"            { COLON }
+| "int"          { TYPEINT }
+| "struct"       { STRUCT }
+| "malloc"       { MALLOC }
+| "&"            { AMPERSAND }
+| "*"            { ASTERISK }
+| "->"           { RIGHTARROW }
+| "int"          { TYPEINT }
+| "free"         { FREE }
+| "return"       { RETURN }
+| "void"         { VOID }
+| ("//")         { lastComment <- "" ; comment lexbuf }
+| ['a'-'z''A'-'Z']['a'-'z''A'-'Z''1'-'9']* { ID(lastComment) }
+| ['-']?digit+                             { INT (Int32.Parse(lexeme lexbuf)) }
+| eof            { EOF }
+
+and comment = parse
+| newline whitespace* ("//") { newline lexbuf ; lastComment <- lastComment + "\n" ; comment lexbuf }
+| newline { newline lexbuf ; token lexbuf} 
+| _ { lastComment <- lastComment + (lexeme lexbuf); comment lexbuf }
