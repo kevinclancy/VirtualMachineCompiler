@@ -48,6 +48,11 @@ let execute (code : Instruction []) : int =
             SP <- SP - 1
             PC <- PC + 1
             true
+        | Gt ->
+            mem[SP - 1] <- if mem[SP - 1] > mem[SP] then 1 else 0
+            SP <- SP - 1
+            PC <- PC + 1
+            true            
         | Lt ->
             mem[SP - 1] <- if mem[SP - 1] < mem[SP] then 1 else 0
             SP <- SP - 1
@@ -110,16 +115,16 @@ let execute (code : Instruction []) : int =
             true
         | LoadR(loadFromFPOffset, numWordsToLoad) ->
             SP <- SP + 1
-            let addrToLoadFrom = mem[FP + loadFromFPOffset]
+            let addrToLoadFrom = FP + loadFromFPOffset
             for i in (numWordsToLoad - 1) .. -1 .. 0 do
                 mem[SP + i] <- mem[addrToLoadFrom + i]
             SP <- SP + numWordsToLoad - 1
             PC <- PC + 1
             true
         | StoreR(destOffset, numWordsToStore) ->
-            let destAddr = mem[FP + destOffset]
+            let destAddr = FP + destOffset
             for i in 0 .. (numWordsToStore - 1) do
-                mem[destAddr + i] <- mem[SP - numWordsToStore + i]
+                mem[destAddr + i] <- mem[SP - (numWordsToStore - 1) + i]
             PC <- PC + 1
             true
         | Mark ->
@@ -132,11 +137,12 @@ let execute (code : Instruction []) : int =
             FP <- SP
             let tmp = PC
             PC <- mem[SP]
-            mem[SP] <- tmp
+            mem[SP] <- tmp + 1
             true
         | Slide(slideDistance, numWordsToSlide) ->
             match slideDistance with
             | 0 ->
+                PC <- PC + 1
                 true
             | _ ->
                 if numWordsToSlide = 0 then 
@@ -146,9 +152,11 @@ let execute (code : Instruction []) : int =
                     for _ in 0 .. (numWordsToSlide - 1) do
                         SP <- SP + 1
                         mem[SP] <- mem[SP + slideDistance]
+                PC <- PC + 1
                 true
         | Alloc(numWords) ->
             SP <- SP + numWords
+            PC <- PC + 1
             true
         | Enter(maxFrameSize) ->
             EP <- SP + maxFrameSize

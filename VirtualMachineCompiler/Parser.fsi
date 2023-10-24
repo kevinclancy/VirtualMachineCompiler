@@ -9,6 +9,7 @@ type token =
   | RETURN
   | VOID
   | EOF
+  | FUN
   | WHILE
   | FOR
   | SWITCH
@@ -48,6 +49,7 @@ type tokenId =
     | TOKEN_RETURN
     | TOKEN_VOID
     | TOKEN_EOF
+    | TOKEN_FUN
     | TOKEN_WHILE
     | TOKEN_FOR
     | TOKEN_SWITCH
@@ -83,12 +85,14 @@ type tokenId =
 type nonTerminalId = 
     | NONTERM__startstat
     | NONTERM__startexpr
+    | NONTERM__startprog
     | NONTERM_expr
     | NONTERM_Expr
     | NONTERM_ArgList
     | NONTERM_SwitchCase
     | NONTERM_DefaultSwitchCase
     | NONTERM_SwitchCases
+    | NONTERM_StatList
     | NONTERM_stat
     | NONTERM_Stat
     | NONTERM_Type
@@ -96,8 +100,10 @@ type nonTerminalId =
     | NONTERM_VarDeclList
     | NONTERM_Param
     | NONTERM_ParamList
+    | NONTERM_OptParamList
     | NONTERM_FunDecl
     | NONTERM_FunDeclList
+    | NONTERM_prog
     | NONTERM_Prog
 /// This function maps tokens to integer indexes
 val tagOfToken: token -> int
@@ -112,3 +118,4 @@ val prodIdxToNonTerminal: int -> nonTerminalId
 val token_to_string: token -> string
 val stat : (FSharp.Text.Lexing.LexBuffer<'cty> -> token) -> FSharp.Text.Lexing.LexBuffer<'cty> -> (Stat) 
 val expr : (FSharp.Text.Lexing.LexBuffer<'cty> -> token) -> FSharp.Text.Lexing.LexBuffer<'cty> -> (Expr) 
+val prog : (FSharp.Text.Lexing.LexBuffer<'cty> -> token) -> FSharp.Text.Lexing.LexBuffer<'cty> -> (Prog) 

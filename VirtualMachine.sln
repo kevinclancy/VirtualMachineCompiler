@@ -3,11 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32616.157
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VirtualMachine", "VirtualMachine\VirtualMachine.vcxproj", "{5FE987CB-2862-4893-BC2C-77001D9848FD}"
-EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "VirtualMachineCompiler", "VirtualMachineCompiler\VirtualMachineCompiler.fsproj", "{B0A390BE-F35A-4E2D-A072-561226E1D5DD}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "VirtualMachineCompilerTests", "VirtualMachineCompilerTests\VirtualMachineCompilerTests.fsproj", "{D03BA13B-7BA2-4179-A043-8FBAF0FCC712}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "VirtualMachineCompilerTests", "VirtualMachineCompilerTests\VirtualMachineCompilerTests.fsproj", "{D03BA13B-7BA2-4179-A043-8FBAF0FCC712}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,16 +17,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{5FE987CB-2862-4893-BC2C-77001D9848FD}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{5FE987CB-2862-4893-BC2C-77001D9848FD}.Debug|x64.ActiveCfg = Debug|x64
-		{5FE987CB-2862-4893-BC2C-77001D9848FD}.Debug|x64.Build.0 = Debug|x64
-		{5FE987CB-2862-4893-BC2C-77001D9848FD}.Debug|x86.ActiveCfg = Debug|Win32
-		{5FE987CB-2862-4893-BC2C-77001D9848FD}.Debug|x86.Build.0 = Debug|Win32
-		{5FE987CB-2862-4893-BC2C-77001D9848FD}.Release|Any CPU.ActiveCfg = Release|Win32
-		{5FE987CB-2862-4893-BC2C-77001D9848FD}.Release|x64.ActiveCfg = Release|x64
-		{5FE987CB-2862-4893-BC2C-77001D9848FD}.Release|x64.Build.0 = Release|x64
-		{5FE987CB-2862-4893-BC2C-77001D9848FD}.Release|x86.ActiveCfg = Release|Win32
-		{5FE987CB-2862-4893-BC2C-77001D9848FD}.Release|x86.Build.0 = Release|Win32
 		{B0A390BE-F35A-4E2D-A072-561226E1D5DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B0A390BE-F35A-4E2D-A072-561226E1D5DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0A390BE-F35A-4E2D-A072-561226E1D5DD}.Debug|x64.ActiveCfg = Debug|Any CPU

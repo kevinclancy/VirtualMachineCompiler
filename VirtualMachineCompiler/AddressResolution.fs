@@ -23,9 +23,11 @@ let resolve (instructions : List<Instruction>) : Instruction [] =
             | Jump addr ->
                 Jump addrMap[addr]
             | JumpZ addr ->
-                Jump addrMap[addr]
+                JumpZ addrMap[addr]
             | JumpI addr ->
                 JumpI addrMap[addr]
+            | LoadCAddr addr ->
+                LoadC addrMap[addr]
             | _ ->
                 result[i]
 

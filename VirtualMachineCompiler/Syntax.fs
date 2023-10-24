@@ -55,6 +55,7 @@ type Expr =
     | Eq of Expr * Expr * Range
     | Leq of Expr * Expr * Range
     | Geq of Expr * Expr * Range
+    | Gt of Expr * Expr * Range
     | Lt of Expr * Expr * Range
     | Assign of lTarget : Expr * rSource : Expr * Range
     | Var of string * Range
@@ -71,6 +72,7 @@ type Expr =
             | Eq(_,_,rng)
             | Leq(_,_,rng)
             | Geq(_,_,rng)
+            | Gt(_,_,rng)
             | Lt(_,_,rng)
             | Assign(_,_,rng)
             | IntLiteral(_,rng)

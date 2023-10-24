@@ -4,6 +4,9 @@ open Syntax
 
 %}
 
+%start prog
+%type <Prog> prog
+
 %start expr
 %type <Expr> expr
 
@@ -16,14 +19,16 @@ open Syntax
 %token LPAREN RPAREN LBRACK RBRACK LSQUAREBRACK RSQUAREBRACK TYPEINT
 %token PLUS MINUS TIMES LEQ GEQ LT GT GETS SEMICOLON IF ELSE EQ
 %token WHILE FOR SWITCH CASE DEFAULT COLON STRUCT BREAK COMMA
-%token MALLOC AMPERSAND ASTERISK RIGHTARROW FREE RETURN VOID EOF
+%token MALLOC AMPERSAND ASTERISK RIGHTARROW FREE RETURN VOID EOF FUN
+
+%right GETS
 
 %left RIGHTARROW
 %left TIMES
 %left PLUS MINUS
-%left EQ LEQ GEQ LT 
+%left EQ LEQ GEQ LT GT
 
-%right GETS
+
 
 %left SEMICOLON
 
@@ -37,6 +42,7 @@ Expr : Expr PLUS Expr  %prec PLUS  { Plus($1, $3, parseState.ResultRange) }
      | Expr LEQ Expr   %prec LEQ   { Leq($1, $3, parseState.ResultRange) }
      | Expr GEQ Expr   %prec GEQ   { Geq($1, $3, parseState.ResultRange) }
      | Expr LT Expr    %prec LT    { Lt($1, $3, parseState.ResultRange) }
+     | Expr GT Expr    %prec GT    { Gt($1, $3, parseState.ResultRange) }
      | Expr GETS Expr  %prec GETS  { Assign($1, $3, parseState.ResultRange) }
      | INT { IntLiteral($1, parseState.ResultRange) }
      | LPAREN Expr RPAREN { $2 }
@@ -47,42 +53,50 @@ Expr : Expr PLUS Expr  %prec PLUS  { Plus($1, $3, parseState.ResultRange) }
 ArgList : Expr COMMA ArgList { $1 :: $3 }
         | Expr               { [$1] }
 
-SwitchCase : CASE INT COLON Stat SEMICOLON BREAK { { scrutineeValue = $2 ; statement = $4 } }
+SwitchCase : CASE INT COLON StatList SEMICOLON BREAK { { scrutineeValue = $2 ; statement = $4 } }
 
-DefaultSwitchCase : DEFAULT COLON Stat { $3 }
+DefaultSwitchCase : DEFAULT COLON StatList { $3 }
 
 SwitchCases : SwitchCase SwitchCases { $1 :: $2 }
 
+StatList : StatList Stat { Sequence($1, $2, parseState.ResultRange) }
+         | Stat { $1 }
+
 stat : Stat EOF { $1 }
 Stat : Expr SEMICOLON { ExprStat($1, parseState.ResultRange) }
-     | IF LPAREN Expr RPAREN LBRACK Stat RBRACK { IfThen($3, $6, parseState.ResultRange) }
-     | IF LPAREN Expr RPAREN LBRACK Stat RBRACK ELSE LBRACK Stat RBRACK { IfThenElse($3, $6, $10, parseState.ResultRange) }
-     | WHILE LPAREN Expr RPAREN LBRACK Stat RBRACK { While($3, $6, parseState.ResultRange) }
+     | IF LPAREN Expr RPAREN LBRACK StatList RBRACK { IfThen($3, $6, parseState.ResultRange) }
+     | IF LPAREN Expr RPAREN LBRACK StatList RBRACK ELSE LBRACK StatList RBRACK { IfThenElse($3, $6, $10, parseState.ResultRange) }
+     | WHILE LPAREN Expr RPAREN LBRACK StatList RBRACK { While($3, $6, parseState.ResultRange) }
      | SWITCH LPAREN Expr RPAREN LBRACK SwitchCases DefaultSwitchCase RBRACK { Switch($3, $6, $7, parseState.ResultRange) }
-     | Stat SEMICOLON Stat { Sequence($1, $3, parseState.ResultRange) }
-     | RETURN Expr { Return($2, parseState.ResultRange) }
-     | RETURN { ReturnVoid(parseState.ResultRange) }
+    // | Stat SEMICOLON Stat { Sequence($1, $3, parseState.ResultRange) }
+     | RETURN Expr SEMICOLON { Return($2, parseState.ResultRange) }
+     | RETURN SEMICOLON { ReturnVoid(parseState.ResultRange) }
 
 Type : TYPEINT { Int }
-     | ASTERISK Type { Ptr($2) }
+//   | ASTERISK Type { Ptr($2) }
      | STRUCT LBRACK VarDeclList RBRACK { Struct($3) }
 
-VarDecl : Type ID SEMICOLON { { varName = $2 ; ty = $1 } }
-        | Type ID LSQUAREBRACK INT RSQUAREBRACK SEMICOLON { { varName = $2 ; ty = Array($1, $4) } }
-        | Type ASTERISK ID SEMICOLON { { varName = $3 ; ty = Ptr($1) } }
+VarDecl : Type ID { { varName = $2 ; ty = $1 } }
+        | Type ID LSQUAREBRACK INT RSQUAREBRACK { { varName = $2 ; ty = Array($1, $4) } }
+        | Type ASTERISK ID { { varName = $3 ; ty = Ptr($1) } }
         
-VarDeclList : VarDecl VarDeclList { $1 :: $2 }
-            | VarDecl { [$1] }
-            
+VarDeclList : VarDecl SEMICOLON VarDeclList { $1 :: $3 }
+            | VarDecl SEMICOLON { [$1] }
 
-Param : ID COLON Type { { varName = $1 ; ty = $3 } }
+Param : Type ID { { varName = $2 ; ty = $1 } }
 
 ParamList : Param COMMA ParamList { $1 :: $3 }
           | Param { [$1] }
 
-FunDecl : Type ID LPAREN ParamList RPAREN LBRACK VarDeclList Stat RBRACK { { name = $2 ; pars = $4 ; retTy = $1 ; localDecls = $7 ; body = $8 } }
-     
+OptParamList : LPAREN RPAREN { [] }
+             | LPAREN ParamList RPAREN { $2 }
+
+FunDecl : FUN Type ID OptParamList LBRACK VarDeclList StatList RBRACK { { name = $3 ; pars = $4 ; retTy = $2 ; localDecls = $6 ; body = $7 } }
+        | FUN Type ID OptParamList LBRACK StatList RBRACK { { name = $3 ; pars = $4 ; retTy = $2 ; localDecls = [] ; body = $6 } }
+
 FunDeclList : FunDecl FunDeclList { $1 :: $2 }
             | FunDecl { [$1] }
 
+prog : Prog EOF { $1 }
 Prog : VarDeclList FunDeclList { { globals = $1 ; funDecls = $2 } }
+     | FunDeclList { { globals = [] ; funDecls = $1 } }

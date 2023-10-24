@@ -4,6 +4,9 @@ type Instruction =
     // not a real instruction.
     /// SymbolicAddress(n) means that the following instruction is located at symbolic address n
     | SymbolicAddress of int
+    /// LoadCAddr(symbolicAddr) resolves to LoadC(addr), where addr is the physical address mapped to
+    /// by symbolicAddr
+    | LoadCAddr of int
     // real instructions below
     | Halt
     | Mul
@@ -13,6 +16,7 @@ type Instruction =
     | Leq
     | Eq
     | Geq
+    | Gt
     | Lt
     | Neg
     | Dup

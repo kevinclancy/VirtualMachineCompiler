@@ -62,12 +62,13 @@ rule token = parse
 | "&"            { AMPERSAND }
 | "*"            { ASTERISK }
 | "->"           { RIGHTARROW }
+| "fun"          { FUN }
 | "int"          { TYPEINT }
 | "free"         { FREE }
 | "return"       { RETURN }
 | "void"         { VOID }
 | ("//")         { lastComment <- "" ; comment lexbuf }
-| ['a'-'z''A'-'Z']['a'-'z''A'-'Z''1'-'9']* { ID(lastComment) }
+| ['a'-'z''A'-'Z']['a'-'z''A'-'Z''1'-'9']* { ID(lexeme lexbuf) }
 | ['-']?digit+                             { INT (Int32.Parse(lexeme lexbuf)) }
 | eof            { EOF }
 
