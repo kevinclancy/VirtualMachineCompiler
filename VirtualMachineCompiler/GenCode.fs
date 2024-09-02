@@ -6,24 +6,13 @@ open Environment
 open GenComputation
 
 
-/// compute an upper bound on the number of words that the VM could push onto the stack while executing this
-/// expression, excluding calls to other functions
-let rec stackOffsetBound (e : Expr) : int =
-    match e with
-    | Plus(e1, e2, _) ->
-        let e1Bound = stackOffsetBound e1
-        // while computing e2, the value of e1 is already on the stack
-        let e2Bound = (stackOffsetBound e2) + 1
-        max (stackOffsetBound e1) (stackOffsetBound e2)
-    
-
 let rec binOp (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) : Gen<int * Ty * List<Instruction>> =
     gen {
         let! depth1, ty1, code1 = genExprR ctxt e1
         let! depth2, ty2, code2 = genExprR ctxt e2
-        do! 
+        do!
             match ty1 with
-            | Int 
+            | Int
             | Ptr(_) ->
                 pass
             | _ ->
@@ -35,7 +24,7 @@ let rec binOp (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) : G
             | _ ->
                 error "expected integer type" e2.Range
         return max (depth1) (depth2 + 1), ty1, List.concat [code1 ; code2 ; [instr]]
-    }    
+    }
 
 and genExprL (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
     match e with
@@ -88,13 +77,13 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
             let! depth1, ty1, code1 = genExprL ctxt e1
             let! depth2, ty2, code2 = genExprR ctxt e2
 
-            do! 
+            do!
                 match Ty.IsEqual ty1 ty2 with
                 | true ->
                     pass
                 | false ->
                     error "Types on the left and right-hand side of assignment are unequal" rng
-            
+
             return (max depth2 (depth1 + ty2.Size), ty1, List.concat [code2 ; code1 ; [Store ty2.Size]])
         }
     | Var(name, rng) ->
@@ -111,7 +100,7 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
                     }
                 | None ->
                     error ("Undeclared variable '" + name + "'") rng
-                    
+
 
             return (ctxt.varCtxt[name].ty.Size, ctxt.varCtxt[name].ty, [loadInstruction ; Load ctxt.varCtxt[name].ty.Size])
         }
@@ -121,7 +110,7 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
         }
     | FunCall(name, args, rng) ->
         gen {
-            let! funDecl = 
+            let! funDecl =
                 match ctxt.funCtxt.TryFind(name) with
                 | Some(funDecl) ->
                     gen {
@@ -129,7 +118,7 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
                     }
                 | None ->
                     error ("No function named " + name + " has been declared") rng
-            
+
             let! argResults = letAll (List.map (genExprR ctxt) args)
             let _, argTys, argInstructionLists = List.unzip3 argResults
 
@@ -153,13 +142,13 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
             let code = List.concat [
                 [Alloc retAllocDepth]
                 List.concat argInstructionLists
-                [Mark] 
+                [Mark]
                 [LoadCAddr funDecl.addr]
                 [Call]
                 [Slide(max (sizeArgs - sizeRet) 0, sizeRet)]
             ]
 
-            let foldArg ((maxDepth, currDepth) : int * int) 
+            let foldArg ((maxDepth, currDepth) : int * int)
                         ((argDepth, argTy, _) : int * Ty * List<Instruction>) : int * int =
                 (max maxDepth (currDepth + argDepth), currDepth + argTy.Size)
 
@@ -173,15 +162,15 @@ and check (highestIndex : int) (addrJumpTable : int) : Gen<int * List<Instructio
         let! addrHandleBoundsViolation = getFreshSymbolicAddr
         return 2, [
             // handle bounds violation if top of stack is less than 0
-            Dup  
+            Dup
             LoadC 0
-            Instruction.Geq 
+            Instruction.Geq
             JumpZ addrHandleBoundsViolation
 
             // handle bounds violation if top of stack is greater than highestIndex
-            Dup 
-            LoadC highestIndex 
-            Instruction.Leq 
+            Dup
+            LoadC highestIndex
+            Instruction.Leq
             JumpZ addrHandleBoundsViolation
 
             JumpI addrJumpTable
@@ -202,7 +191,7 @@ and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
         }
     | IfThen(cond, thenClause, _) ->
         gen {
-            let! condDepth, condTy, condCode = genExprR ctxt cond 
+            let! condDepth, condTy, condCode = genExprR ctxt cond
             do!
                 match condTy with
                 | Int ->
@@ -210,7 +199,7 @@ and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
                 | _ ->
                     error "Condition expected to have type int" cond.Range
             let! thenDepth, thenCode = genStat ctxt thenClause
-            let! addr = getFreshSymbolicAddr 
+            let! addr = getFreshSymbolicAddr
             return (
                 max condDepth thenDepth,
                 List.concat [condCode ; [JumpZ addr] ; thenCode ; [SymbolicAddress addr]]
@@ -355,8 +344,8 @@ and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
                 | false ->
                     error ("type of return " + exprTy.ToString() + " does not match declared return type " + ctxt.retTy.ToString()) rng
 
-            let retValueAddr = 
-                if ctxt.argumentSpace > ctxt.retTy.Size then 
+            let retValueAddr =
+                if ctxt.argumentSpace > ctxt.retTy.Size then
                     -(ctxt.argumentSpace + 2)
                 else
                     -(ctxt.retTy.Size + 2)
@@ -378,7 +367,7 @@ and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
         }
 
 /// Returns (addr, instructions)
-/// where addr is a symbolic address for the function and 
+/// where addr is a symbolic address for the function and
 /// instructions is a list of instructions that executes an incarnation of the function
 let genFunc (ctxt : Context) (func : FunDecl) : Gen<int * List<Instruction>> =
     gen {
@@ -399,10 +388,10 @@ let genProg (prog : Prog) : Gen<List<Instruction>> =
     gen {
         let sizeGlobals = List.sumBy (fun (x : VarDecl) -> x.ty.Size) prog.globals
         let sizeMainReturn = 1
-        let sizeOrganizationalCells = 3 
+        let sizeOrganizationalCells = 3
 
         let ctxt = elabGlobals Context.empty 1 prog.globals
-         
+
         let foldFuncDecl ((ctxt, genFuncs) : Context * List<int * List<Instruction>>) (d : FunDecl) =
             gen {
                 let! addr, instructions = genFunc ctxt d
@@ -417,9 +406,9 @@ let genProg (prog : Prog) : Gen<List<Instruction>> =
                     (addr, instructions) :: genFuncs
                 )
             }
-        
+
         let! _, funcList = foldM (ctxt, []) foldFuncDecl prog.funDecls
-        
+
         let funcAddresses, funcInstructions = List.unzip (List.rev funcList)
 
         return List.concat [
@@ -433,4 +422,3 @@ let genProg (prog : Prog) : Gen<List<Instruction>> =
             List.concat funcInstructions
         ]
     }
-    
