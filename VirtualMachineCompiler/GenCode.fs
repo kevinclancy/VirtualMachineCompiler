@@ -5,7 +5,21 @@ open Syntax
 open Environment
 open GenComputation
 
-
+/// Generate code to perform `e1 'binop' e2` where 'binop' is a binary operation implemented by `instr`
+///
+/// ## Parameters
+///
+/// * ctxt - the context of the operation
+/// * e1 - the left operand
+/// * e2 - the right operand
+/// * instr - an instruction that pops `v1` and `v2` from the stack and pushes `v1 'binop' v2`,
+///           where `v2` is the value on the top of the stack and `v1` is the value directly below
+///
+/// ## Returns
+///
+/// * 1 - the additional stack size (beyond its starting size) needed to execute the code
+/// * 2 - the type of the result of the binary operation
+/// * 3 - the list of generated instructions, which pop the arguments and push the result of the binary operation
 let rec binOp (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) : Gen<int * Ty * List<Instruction>> =
     gen {
         let! depth1, ty1, code1 = genExprR ctxt e1
@@ -26,6 +40,18 @@ let rec binOp (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) : G
         return max (depth1) (depth2 + 1), ty1, List.concat [code1 ; code2 ; [instr]]
     }
 
+/// Generate the lvalue of the expression `e`
+///
+/// ## Parameters
+///
+/// * ctxt - the context that e occurs in
+/// * e - the expression to compute the l-value of
+///
+/// ## Returns
+///
+/// * 1 - The additional stack size (beyond its starting size) needed to execute the generated instructions
+/// * 2 - The type of the expression `e`
+/// * 3 - The generated list of instructions, which push the l-value of `e` onto the stack.
 and genExprL (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
     match e with
     | Plus(_, _, _)
@@ -54,6 +80,19 @@ and genExprL (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
             return (1, ctxt.varCtxt[name].ty, [loadInstruction])
         }
 
+/// Generate a sequence of instructions that pushes the r-value of
+/// the expression 'e' onto the stack
+///
+/// ## Parameters
+///
+/// * ctxt - The context that the expression `e` appears in
+/// * e - The expression to compute the r-value of
+///
+/// ## Returns
+///
+/// * 1 - The additional stack size (beyond its starting size) needed to execute the generated instructions
+/// * 2 - The type of `e`
+/// * 3 - A list of instructions that push the r-value of `e` onto the stack
 and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
     match e with
     | Plus(e1, e2, _) ->
@@ -157,7 +196,17 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
             return (argsDepth + retAllocDepth + markDepth + funAddrDepth, funDecl.decl.retTy, code)
         }
 
-and check (highestIndex : int) (addrJumpTable : int) : Gen<int * List<Instruction>> =
+/// Let `n` be the value on top of the stack. `check k addrJumpTable` generates an instruction sequence
+/// that
+///
+/// * jumps to `addrJumpTable + n` if 0 <= `n` < `k`
+/// * and jumps to `addrJumpTable + k` otherwise
+///
+/// ## Returns
+///
+/// * 1 - The additional stack size (beyond its starting size) needed to execute the generated instructions
+/// * 2 - The generated instruction sequence
+and check (k : int) (addrJumpTable : int) : Gen<int * List<Instruction>> =
     gen {
         let! addrHandleBoundsViolation = getFreshSymbolicAddr
         return 2, [
@@ -167,9 +216,9 @@ and check (highestIndex : int) (addrJumpTable : int) : Gen<int * List<Instructio
             Instruction.Geq
             JumpZ addrHandleBoundsViolation
 
-            // handle bounds violation if top of stack is greater than highestIndex
+            // handle bounds violation if top of stack is greater than k
             Dup
-            LoadC highestIndex
+            LoadC k
             Instruction.Leq
             JumpZ addrHandleBoundsViolation
 
@@ -177,11 +226,22 @@ and check (highestIndex : int) (addrJumpTable : int) : Gen<int * List<Instructio
 
             SymbolicAddress addrHandleBoundsViolation
             Pop
-            LoadC highestIndex
+            LoadC k
             JumpI addrJumpTable
         ]
     }
 
+/// Generates a sequence of instructions to execute statement `s` while leaving the stack unchanged
+///
+/// ## Parameters
+///
+/// * ctxt - The context that `s` occurs in
+/// * s - The statement to generate code for
+///
+/// ## Returns
+///
+/// * 1 - The additional stack size (beyond its starting size) needed to execute the generated instructions
+/// * 2 - The generated instruction sequence
 and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
     match s with
     | ExprStat(e, _) ->
@@ -288,7 +348,6 @@ and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
             let! addrJumpTable = getFreshSymbolicAddr
             let! addrAfterSwitch = getFreshSymbolicAddr
             let! checkBoundsDepth, checkBoundsInstructions = check (cases.Length - 1) addrJumpTable
-            // TODO: check that the case values are 0 through k-1
             let! scrutineeDepth, scrutineeTy, scrutineeCode = genExprR ctxt scrutinee
             do!
                 match scrutineeTy with
@@ -366,9 +425,17 @@ and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
             )
         }
 
-/// Returns (addr, instructions)
-/// where addr is a symbolic address for the function and
-/// instructions is a list of instructions that executes an incarnation of the function
+/// Generates code for a function declaration
+///
+/// ## Parameters
+///
+/// * ctxt - The context the function declaration occurs in
+/// * func - The function declaration
+///
+/// ## Returns
+///
+/// * 1 - The symbolic address for the function
+/// * 2 - A list of instructions that exectues an incarnation of the function
 let genFunc (ctxt : Context) (func : FunDecl) : Gen<int * List<Instruction>> =
     gen {
         let! funAddr = getFreshSymbolicAddr
@@ -384,6 +451,15 @@ let genFunc (ctxt : Context) (func : FunDecl) : Gen<int * List<Instruction>> =
         ]
     }
 
+/// Generate a list of instructions to execute `prog`
+///
+/// ## Paramters
+///
+/// * prog - The program to generate instructions for
+///
+/// ## Returns
+///
+/// * The generated list of instructions that executes `prog`
 let genProg (prog : Prog) : Gen<List<Instruction>> =
     gen {
         let sizeGlobals = List.sumBy (fun (x : VarDecl) -> x.ty.Size) prog.globals
