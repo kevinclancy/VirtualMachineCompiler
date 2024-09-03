@@ -20,7 +20,7 @@ type Fixture () =
     [<Test>]
     member this.sumTwoInts() =
         let e = parseExpr "3 + 2"
-        let _, ty, code = 
+        let _, ty, code =
             match run (genExprR Context.empty e) with
             | Result(code, _) ->
                 code
@@ -42,7 +42,7 @@ type Fixture () =
     [<Test>]
     member this.moreMath() =
         let e = parseExpr "(3 + 2 - 1) * 6"
-        let _, ty, code = 
+        let _, ty, code =
             match run (genExprR Context.empty e) with
             | Result(code, _) ->
                 code
@@ -70,7 +70,7 @@ type Fixture () =
               return 1;
             }
         """
-        let code = 
+        let code =
             match run (genProg e) with
             | Result(code, _) ->
                 code
@@ -80,7 +80,7 @@ type Fixture () =
         let code' = resolve code
         let result = execute code'
 
-        Assert.That( (result = 1) )        
+        Assert.That( (result = 1) )
 
 
     [<Test>]
@@ -93,7 +93,7 @@ type Fixture () =
               return a;
             }
         """
-        let code = 
+        let code =
             match run (genProg e) with
             | Result(code, _) ->
                 code
@@ -115,7 +115,7 @@ type Fixture () =
               if (n >= 1) { return 3; } else { return 100; }
             }
         """
-        let code = 
+        let code =
             match run (genProg e) with
             | Result(code, _) ->
                 code
@@ -125,7 +125,7 @@ type Fixture () =
         let code' = resolve code
         let result = execute code'
 
-        Assert.That( (result = 3) )  
+        Assert.That( (result = 3) )
 
     [<Test>]
     member this.funCall() =
@@ -141,7 +141,7 @@ type Fixture () =
                 return r;
             }
         """
-        let code = 
+        let code =
             match run (genProg e) with
             | Result(code, _) ->
                 code
@@ -151,8 +151,8 @@ type Fixture () =
         let code' = resolve code
         let result = execute code'
 
-        Assert.That( (result = 2) )  
-    
+        Assert.That( (result = 2) )
+
     [<Test>]
     member this.factorial() =
         let e = parseProg """
@@ -170,7 +170,7 @@ type Fixture () =
               return r;
             }
         """
-        let code = 
+        let code =
             match run (genProg e) with
             | Result(code, _) ->
                 code
@@ -180,7 +180,47 @@ type Fixture () =
         let code' = resolve code
         let result = execute code'
 
-        Assert.That( (result = 30) )  
+        Assert.That( (result = 30) )
+
+    [<Test>]
+    member this.switchTest() =
+        let e = parseProg """
+            fun int main() {
+              int r;
+              int n;
+              n <- 3;
+              r <- 0;
+              while (n >= 0) {
+                switch(n) {
+                  case 0:
+                    r <- r * 2;
+                    break;
+                  case 1:
+                    r <- r + 2;
+                    break;
+                  case 2:
+                    r <- r + 1;
+                    break;
+                  default:
+                    r <- r + 1;
+                    break;
+                }
+                n <- n - 1;
+              }
+              return r;
+            }
+        """
+        let code =
+            match run (genProg e) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith <| "code generation failed with error: " + msg
+
+        let code' = resolve code
+        let result = execute code'
+
+        Assert.That( (result = 8) )
 
     [<Test>]
     member this.countDown() =
@@ -197,7 +237,7 @@ type Fixture () =
               return r;
             }
         """
-        let code = 
+        let code =
             match run (genProg e) with
             | Result(code, _) ->
                 code
@@ -207,4 +247,4 @@ type Fixture () =
         let code' = resolve code
         let result = execute code'
 
-        Assert.That( (result = 120) )         
+        Assert.That( (result = 120) )
