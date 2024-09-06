@@ -10,6 +10,7 @@ type token =
   | VOID
   | EOF
   | FUN
+  | TYPEDEF
   | WHILE
   | FOR
   | SWITCH
@@ -19,6 +20,7 @@ type token =
   | STRUCT
   | BREAK
   | COMMA
+  | PERIOD
   | PLUS
   | MINUS
   | TIMES
@@ -50,6 +52,7 @@ type tokenId =
     | TOKEN_VOID
     | TOKEN_EOF
     | TOKEN_FUN
+    | TOKEN_TYPEDEF
     | TOKEN_WHILE
     | TOKEN_FOR
     | TOKEN_SWITCH
@@ -59,6 +62,7 @@ type tokenId =
     | TOKEN_STRUCT
     | TOKEN_BREAK
     | TOKEN_COMMA
+    | TOKEN_PERIOD
     | TOKEN_PLUS
     | TOKEN_MINUS
     | TOKEN_TIMES
@@ -95,6 +99,8 @@ type nonTerminalId =
     | NONTERM_StatList
     | NONTERM_stat
     | NONTERM_Stat
+    | NONTERM_TypeDef
+    | NONTERM_TypeDefList
     | NONTERM_Type
     | NONTERM_VarDecl
     | NONTERM_VarDeclList

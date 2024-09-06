@@ -223,6 +223,120 @@ type Fixture () =
         Assert.That( (result = 8) )
 
     [<Test>]
+    member this.badStructDef () =
+        let e = parseProg """
+            typedef struct Vec { int x; int y; };
+
+            fun int main() {
+                struct Point pos;
+                return 0;
+            }
+        """
+        match run (genProg e) with
+        | Result(code, _) ->
+            failwith "Type-checking should fail since type Point is not defined"
+        | Error(msg, _) ->
+            Assert.That ( msg.Contains("type Point not defined") )
+            ()
+
+    [<Test>]
+    member this.structDef () =
+        let e = parseProg """
+            typedef struct Vec { int x; int y; };
+
+            fun int main() {
+                struct Vec pos;
+                return 0;
+            }
+        """
+        let code =
+            match run (genProg e) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith <| "code generation failed with error: " + msg
+        let code' = resolve code
+        let result = execute code'
+
+        Assert.That( (result = 0) )
+
+    [<Test>]
+    member this.structFieldAccess () =
+        let e = parseProg """
+            typedef struct Vec { int x; int y; };
+
+            fun int main() {
+                struct Vec pos;
+                pos.x <- 2;
+                return pos.x;
+            }
+        """
+        let code =
+            match run (genProg e) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith <| "code generation failed with error: " + msg
+        let code' = resolve code
+        let result = execute code'
+
+        Assert.That( (result = 2) )
+
+    [<Test>]
+    member this.structAssign () =
+        let e = parseProg """
+            typedef struct Vec { int x; int y; };
+
+            fun int main() {
+                struct Vec pos1;
+                struct Vec pos2;
+                pos1.x <- 2;
+                pos1.y <- 3;
+                pos2 <- pos1;
+                return pos2.y;
+            }
+        """
+        let code =
+            match run (genProg e) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith <| "code generation failed with error: " + msg
+        let code' = resolve code
+        let result = execute code'
+
+        Assert.That( (result = 3) )
+
+    [<Test>]
+    member this.structReturn () =
+        let e = parseProg """
+            typedef struct Vec { int x; int y; };
+
+            fun struct Vec getPos() {
+                struct Vec pos;
+                pos.x <- 1;
+                pos.y <- 2;
+                return pos;
+            }
+
+            fun int main() {
+                struct Vec pos;
+                pos <- getPos();
+                return pos.x;
+            }
+        """
+        let code =
+            match run (genProg e) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith <| "code generation failed with error: " + msg
+        let code' = resolve code
+        let result = execute code'
+
+        Assert.That( (result = 1) )
+
+    [<Test>]
     member this.countDown() =
         let e = parseProg """
             fun int main() {

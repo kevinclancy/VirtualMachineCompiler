@@ -23,6 +23,8 @@ type FunContextEntry = {
 }
 
 type Context = {
+    /// Maps each type identifier to a struct type definition
+    tyEnv : Map<string, TypeDef>
     /// Maps each function name in context to information about the function
     funCtxt : Map<string, FunContextEntry>
     /// Maps each variable name in context to information about the variable
@@ -36,7 +38,7 @@ type Context = {
 }
     with
         static member empty =
-            { funCtxt = Map.empty ; varCtxt = Map.empty ; retAddr = 1 ; retTy = Int ; argumentSpace = 0 }
+            { tyEnv = Map.empty ; funCtxt = Map.empty ; varCtxt = Map.empty ; retAddr = 1 ; retTy = Int ; argumentSpace = 0 }
 
 /// Return an extended version of `ctxtInit`, where each global variable declared in `decls` has been assigned a memory address
 ///
@@ -51,7 +53,8 @@ type Context = {
 /// * The result of extending `ctxtInit` with all of the global variable declarations in `decls`
 let rec elabGlobals (ctxtInit : Context) (nextAddrInit : int) (decls : List<VarDecl>) : Context =
     let foldDecl ((ctxt, nextAddr) : Context * int) (decl : VarDecl) =
-        { ctxt with varCtxt = ctxt.varCtxt.Add (decl.varName, { address = Global(nextAddr) ; ty = decl.ty }) }, (nextAddr + decl.ty.Size)
+        { ctxt with varCtxt = ctxt.varCtxt.Add (decl.varName, { address = Global(nextAddr) ; ty = decl.ty }) },
+        (nextAddr + (decl.ty.Size ctxt.tyEnv))
     fst <| List.fold foldDecl (ctxtInit, nextAddrInit) decls
 
 /// Return an extended version of `ctxtInit`, where each local variable declared in `decls` has been assigned a memory address
@@ -67,7 +70,8 @@ let rec elabGlobals (ctxtInit : Context) (nextAddrInit : int) (decls : List<VarD
 /// * The result of extending `ctxtInit` with all of the local variable declarations in `decls`
 let rec elabLocals (ctxtInit : Context) (nextAddrInit : int) (decls : List<VarDecl>) : Context =
     let foldDecl ((ctxt, nextAddr) : Context * int) (decl : VarDecl) =
-        { ctxt with varCtxt = ctxt.varCtxt.Add (decl.varName, { address = Local(nextAddr) ; ty = decl.ty }) }, (nextAddr + decl.ty.Size)
+        { ctxt with varCtxt = ctxt.varCtxt.Add (decl.varName, { address = Local(nextAddr) ; ty = decl.ty }) },
+        (nextAddr + (decl.ty.Size ctxt.tyEnv))
     fst <| List.fold foldDecl (ctxtInit, nextAddrInit) decls
 
 /// Return an extended version of `ctxtInit`, where each formal argument declared in `decls` has been assigned a memory address
@@ -83,10 +87,11 @@ let rec elabLocals (ctxtInit : Context) (nextAddrInit : int) (decls : List<VarDe
 /// * The result of extending `ctxtInit` with all of the formal argument declarations in `decls`
 let rec elabFormals (addrCtxtInit : Context) (nextAddrInit : int) (decls : List<VarDecl>) : Context =
     let foldDecl ((ctxt, nextAddr) : Context * int) (decl : VarDecl) =
-        { ctxt with varCtxt = ctxt.varCtxt.Add (decl.varName, { address = Local(nextAddr) ; ty = decl.ty }) }, (nextAddr - decl.ty.Size)
+        { ctxt with varCtxt = ctxt.varCtxt.Add (decl.varName, { address = Local(nextAddr) ; ty = decl.ty }) },
+        (nextAddr - (decl.ty.Size ctxt.tyEnv))
     fst <| List.fold foldDecl (addrCtxtInit, nextAddrInit) decls
 
-/// Extended `ctxt` with the function declared by `funDecl` at symbolic address `funAddr`
+/// Extended `ctxt` with the information necessary to typecheck and generate code for `funDecl`
 ///
 /// ## Parameters
 ///
@@ -101,6 +106,7 @@ let ctxtForFunc (ctxt : Context) (funAddr : int) (funDecl : FunDecl) : Context =
     let ctxt' = {
         ctxt with
             funCtxt = ctxt.funCtxt.Add (funDecl.name, { addr = funAddr ; decl = funDecl})
+            retTy = funDecl.retTy
     }
     let ctxt'' = elabFormals ctxt' -3 funDecl.pars
     elabLocals ctxt'' 1 funDecl.localDecls

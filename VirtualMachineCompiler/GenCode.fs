@@ -68,6 +68,39 @@ and genExprL (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
         error "function calls cannot occur as l-expressions" e.Range
     | IntLiteral(_) ->
         error "integer literals cannot occur as l-expressions" e.Range
+    | FieldAccess(structExpr, fieldName, rng) ->
+        gen {
+            let! depth1, tyStruct, codeStructL = genExprL ctxt structExpr
+            let! tyStructDef =
+                match tyStruct with
+                | Struct(name, rng) ->
+                    match ctxt.tyEnv.TryFind name with
+                    | Some tyStructDef ->
+                        gen {
+                            return tyStructDef
+                        }
+                    | None ->
+                        failwith "synthesized struct types should always be defined"
+                | _ ->
+                    error $"Expected indexed expression to have struct type" rng
+            let! tyField =
+                match List.tryFind (fun d -> d.varName = fieldName) tyStructDef.fields with
+                | Some d ->
+                    gen {
+                        return d.ty
+                    }
+                | None ->
+                    error $"Struct type {tyStructDef.name} does not have a field called {fieldName}" rng
+            return (
+                max depth1 2,
+                tyField,
+                List.concat [
+                    codeStructL
+                    [LoadC <| tyStructDef.fieldOffset ctxt.tyEnv fieldName]
+                    [Add]
+                ]
+            )
+        }
     | Var(name, rng) ->
         gen {
             let loadInstruction =
@@ -111,6 +144,41 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
         binOp ctxt e1 e2 Instruction.Gt
     | Lt(e1, e2, _) ->
         binOp ctxt e1 e2 Instruction.Lt
+    | FieldAccess(structExpr, fieldName, rng) ->
+        gen {
+            let! depth1, tyStruct, codeStructL = genExprL ctxt structExpr
+            let! tyStructDef =
+                match tyStruct with
+                | Struct(name, rng) ->
+                    match ctxt.tyEnv.TryFind name with
+                    | Some tyStructDef ->
+                        gen {
+                            return tyStructDef
+                        }
+                    | None ->
+                        failwith "synthesized struct types should always be defined"
+                | _ ->
+                    error $"Expected indexed expression to have struct type" rng
+            let! tyField =
+                match List.tryFind (fun d -> d.varName = fieldName) tyStructDef.fields with
+                | Some d ->
+                    gen {
+                        return d.ty
+                    }
+                | None ->
+                    error $"Struct type {tyStructDef.name} does not have a field called {fieldName}" rng
+            let fieldSize = tyField.Size ctxt.tyEnv
+            return (
+                max depth1 (max 2 fieldSize),
+                tyField,
+                List.concat [
+                    codeStructL
+                    [LoadC <| tyStructDef.fieldOffset ctxt.tyEnv fieldName]
+                    [Add]
+                    [Load fieldSize]
+                ]
+            )
+        }
     | Assign(e1, e2, rng) ->
         gen {
             let! depth1, ty1, code1 = genExprL ctxt e1
@@ -123,7 +191,11 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
                 | false ->
                     error "Types on the left and right-hand side of assignment are unequal" rng
 
-            return (max depth2 (depth1 + ty2.Size), ty1, List.concat [code2 ; code1 ; [Store ty2.Size]])
+            return (
+                max depth2 (depth1 + ty2.Size ctxt.tyEnv),
+                ty1,
+                List.concat [code2 ; code1 ; [Store (ty2.Size ctxt.tyEnv)]]
+            )
         }
     | Var(name, rng) ->
         gen {
@@ -141,7 +213,11 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
                     error ("Undeclared variable '" + name + "'") rng
 
 
-            return (ctxt.varCtxt[name].ty.Size, ctxt.varCtxt[name].ty, [loadInstruction ; Load ctxt.varCtxt[name].ty.Size])
+            return (
+                ctxt.varCtxt[name].ty.Size ctxt.tyEnv,
+                ctxt.varCtxt[name].ty,
+                [loadInstruction ; Load (ctxt.varCtxt[name].ty.Size ctxt.tyEnv)]
+            )
         }
     | IntLiteral(c, _) ->
         gen {
@@ -173,8 +249,8 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
                         return ()
                     }
 
-            let sizeArgs = List.sum (List.map (fun (T : Ty) -> T.Size) argTys)
-            let sizeRet = funDecl.decl.retTy.Size
+            let sizeArgs = List.sum (List.map (fun (T : Ty) -> T.Size ctxt.tyEnv) argTys)
+            let sizeRet = funDecl.decl.retTy.Size ctxt.tyEnv
             let retAllocDepth = max (sizeRet - sizeArgs) 0
             let markDepth = 2
             let funAddrDepth = 1
@@ -189,7 +265,7 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
 
             let foldArg ((maxDepth, currDepth) : int * int)
                         ((argDepth, argTy, _) : int * Ty * List<Instruction>) : int * int =
-                (max maxDepth (currDepth + argDepth), currDepth + argTy.Size)
+                (max maxDepth (currDepth + argDepth), currDepth + argTy.Size ctxt.tyEnv)
 
             let argsDepth = fst (List.fold foldArg (0,0) argResults)
 
@@ -404,16 +480,16 @@ and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
                     error ("type of return " + exprTy.ToString() + " does not match declared return type " + ctxt.retTy.ToString()) rng
 
             let retValueAddr =
-                if ctxt.argumentSpace > ctxt.retTy.Size then
+                if ctxt.argumentSpace > ctxt.retTy.Size ctxt.tyEnv then
                     -(ctxt.argumentSpace + 2)
                 else
-                    -(ctxt.retTy.Size + 2)
+                    -(ctxt.retTy.Size ctxt.tyEnv + 2)
             return (
                 exprDepth,
                 List.concat [
                     exprInstructions
-                    [StoreR(retValueAddr, exprTy.Size)]
-                    [Instruction.Return(3 + (max (ctxt.argumentSpace - exprTy.Size) 0))]
+                    [StoreR(retValueAddr, exprTy.Size ctxt.tyEnv)]
+                    [Instruction.Return(3 + (max (ctxt.argumentSpace - exprTy.Size ctxt.tyEnv) 0))]
                 ]
             )
         }
@@ -424,6 +500,30 @@ and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
                 [Instruction.Return (ctxt.argumentSpace + 3)]
             )
         }
+
+/// Produce a typechecking error iff `ty` is not well-formed under `ctxt`
+///
+/// ## Parameters
+///
+/// * ctxt - The context to check `ty` under
+/// * ty - The type to check for well-formedness
+let rec checkTy (ctxt : Context) (ty : Ty) : Gen<unit> =
+    match ty with
+    | Int ->
+        gen {
+            return()
+        }
+    | Struct (name, rng) ->
+        if ctxt.tyEnv.ContainsKey name then
+            gen {
+                return ()
+            }
+        else
+            error $"Struct type {name} not defined" rng
+    | Ptr (ty, _) ->
+        checkTy ctxt ty
+    | Array (elemTy, numElems, _) ->
+        checkTy ctxt elemTy
 
 /// Generates code for a function declaration
 ///
@@ -438,16 +538,20 @@ and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
 /// * 2 - A list of instructions that exectues an incarnation of the function
 let genFunc (ctxt : Context) (func : FunDecl) : Gen<int * List<Instruction>> =
     gen {
+        let checkDecl (d : VarDecl) : Gen<unit> =
+            checkTy ctxt d.ty
+        do! doAll (List.map checkDecl func.localDecls)
+        do! doAll (List.map checkDecl func.pars)
         let! funAddr = getFreshSymbolicAddr
-        let localDeclSize = List.sumBy (fun (d : VarDecl) -> d.ty.Size) func.localDecls
-        let argumentSize = List.sumBy (fun (d : VarDecl) -> d.ty.Size) func.pars
+        let localDeclSize = List.sumBy (fun (d : VarDecl) -> d.ty.Size ctxt.tyEnv) func.localDecls
+        let argumentSize = List.sumBy (fun (d : VarDecl) -> d.ty.Size ctxt.tyEnv) func.pars
         let! bodyDepth, bodyInstructions = genStat (ctxtForFunc ctxt funAddr func) func.body
         return funAddr, List.concat [
             [SymbolicAddress funAddr]
             [Enter (localDeclSize + bodyDepth)]
             [Alloc localDeclSize]
             bodyInstructions
-            [Instruction.Return <| max (argumentSize - func.retTy.Size) 0]
+            [Instruction.Return <| max (argumentSize - func.retTy.Size ctxt.tyEnv) 0]
         ]
     }
 
@@ -462,11 +566,12 @@ let genFunc (ctxt : Context) (func : FunDecl) : Gen<int * List<Instruction>> =
 /// * The generated list of instructions that executes `prog`
 let genProg (prog : Prog) : Gen<List<Instruction>> =
     gen {
-        let sizeGlobals = List.sumBy (fun (x : VarDecl) -> x.ty.Size) prog.globals
+        let tyEnv = Map.ofList (List.map (fun (td : TypeDef) -> (td.name, td)) prog.typeDefs)
+        let sizeGlobals = List.sumBy (fun (x : VarDecl) -> x.ty.Size tyEnv) prog.globals
         let sizeMainReturn = 1
         let sizeOrganizationalCells = 3
 
-        let ctxt = elabGlobals Context.empty 1 prog.globals
+        let ctxt = elabGlobals { Context.empty with tyEnv = tyEnv } 1 prog.globals
 
         let foldFuncDecl ((ctxt, genFuncs) : Context * List<int * List<Instruction>>) (d : FunDecl) =
             gen {
@@ -474,7 +579,7 @@ let genProg (prog : Prog) : Gen<List<Instruction>> =
                 let ctxt' = {
                     ctxt with
                         funCtxt = ctxt.funCtxt.Add(d.name, { addr = addr ; decl = d })
-                        argumentSpace = List.sumBy (fun (v : VarDecl) -> v.ty.Size) d.pars
+                        argumentSpace = List.sumBy (fun (v : VarDecl) -> v.ty.Size tyEnv) d.pars
                         retTy = d.retTy
                 }
                 return (

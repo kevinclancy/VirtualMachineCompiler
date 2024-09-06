@@ -46,6 +46,8 @@ rule token = parse
 | ">"            { GT }
 | "<-"           { GETS }
 | ";"            { SEMICOLON }
+| ","            { COMMA }
+| "."            { PERIOD }
 | "if"           { IF }
 | "else"         { ELSE }
 | "while"        { WHILE }
@@ -67,6 +69,7 @@ rule token = parse
 | "free"         { FREE }
 | "return"       { RETURN }
 | "void"         { VOID }
+| "typedef"      { TYPEDEF }
 | ("//")         { lastComment <- "" ; comment lexbuf }
 | ['a'-'z''A'-'Z']['a'-'z''A'-'Z''1'-'9']* { ID(lexeme lexbuf) }
 | ['-']?digit+                             { INT (Int32.Parse(lexeme lexbuf)) }
@@ -74,5 +77,5 @@ rule token = parse
 
 and comment = parse
 | newline whitespace* ("//") { newline lexbuf ; lastComment <- lastComment + "\n" ; comment lexbuf }
-| newline { newline lexbuf ; token lexbuf} 
+| newline { newline lexbuf ; token lexbuf}
 | _ { lastComment <- lastComment + (lexeme lexbuf); comment lexbuf }
