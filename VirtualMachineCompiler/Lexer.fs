@@ -252,7 +252,7 @@ let trans : uint16[] array =
     (* State 111 *)
      [| 65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;|];
     |] 
-let actions : uint16[] = [|65535us;1us;2us;2us;1us;65535us;65535us;0us;65535us;0us;65535us;1us;2us;3us;4us;5us;6us;7us;8us;9us;10us;65535us;14us;15us;17us;18us;19us;43us;43us;43us;43us;43us;43us;43us;43us;43us;29us;43us;33us;43us;43us;65535us;43us;44us;45us;44us;43us;42us;43us;43us;43us;43us;43us;41us;43us;43us;40us;43us;43us;43us;43us;32us;43us;43us;43us;43us;28us;43us;43us;43us;27us;43us;43us;43us;43us;43us;26us;43us;43us;25us;43us;43us;43us;43us;43us;31us;43us;43us;43us;24us;43us;43us;43us;43us;38us;36us;23us;43us;43us;43us;22us;43us;43us;21us;20us;43us;30us;13us;12us;16us;11us;35us;|]
+let actions : uint16[] = [|65535us;1us;2us;2us;1us;65535us;65535us;0us;65535us;0us;65535us;1us;2us;3us;4us;5us;6us;7us;8us;9us;10us;65535us;14us;15us;17us;18us;19us;42us;42us;42us;42us;42us;42us;42us;42us;42us;29us;42us;33us;42us;42us;65535us;42us;43us;44us;43us;42us;41us;42us;42us;42us;42us;42us;40us;42us;42us;39us;42us;42us;42us;42us;32us;42us;42us;42us;42us;28us;42us;42us;42us;27us;42us;42us;42us;42us;42us;26us;42us;42us;25us;42us;42us;42us;42us;42us;31us;42us;42us;42us;24us;42us;42us;42us;42us;37us;35us;23us;42us;42us;42us;22us;42us;42us;21us;20us;42us;30us;13us;12us;16us;11us;34us;|]
 let _fslex_tables = FSharp.Text.Lexing.UnicodeTables.Create(trans,actions)
 let rec _fslex_dummy () = _fslex_dummy() 
 // Rule token
@@ -430,82 +430,77 @@ and token  lexbuf =
           )
   | 34 -> ( 
 # 65 "Lexer.fsl"
-                                  ASTERISK 
+                                  RIGHTARROW 
 # 434 "Lexer.fs"
           )
   | 35 -> ( 
 # 66 "Lexer.fsl"
-                                  RIGHTARROW 
+                                  FUN 
 # 439 "Lexer.fs"
           )
   | 36 -> ( 
 # 67 "Lexer.fsl"
-                                  FUN 
+                                  TYPEINT 
 # 444 "Lexer.fs"
           )
   | 37 -> ( 
 # 68 "Lexer.fsl"
-                                  TYPEINT 
+                                  FREE 
 # 449 "Lexer.fs"
           )
   | 38 -> ( 
 # 69 "Lexer.fsl"
-                                  FREE 
+                                  RETURN 
 # 454 "Lexer.fs"
           )
   | 39 -> ( 
 # 70 "Lexer.fsl"
-                                  RETURN 
+                                  VOID 
 # 459 "Lexer.fs"
           )
   | 40 -> ( 
 # 71 "Lexer.fsl"
-                                  VOID 
+                                  TYPEDEF 
 # 464 "Lexer.fs"
           )
   | 41 -> ( 
 # 72 "Lexer.fsl"
-                                  TYPEDEF 
+                                  lastComment <- "" ; comment lexbuf 
 # 469 "Lexer.fs"
           )
   | 42 -> ( 
 # 73 "Lexer.fsl"
-                                  lastComment <- "" ; comment lexbuf 
+                                                            ID(lexeme lexbuf) 
 # 474 "Lexer.fs"
           )
   | 43 -> ( 
 # 74 "Lexer.fsl"
-                                                            ID(lexeme lexbuf) 
+                                                            INT (Int32.Parse(lexeme lexbuf)) 
 # 479 "Lexer.fs"
           )
   | 44 -> ( 
 # 75 "Lexer.fsl"
-                                                            INT (Int32.Parse(lexeme lexbuf)) 
-# 484 "Lexer.fs"
-          )
-  | 45 -> ( 
-# 76 "Lexer.fsl"
                                   EOF 
-# 489 "Lexer.fs"
+# 484 "Lexer.fs"
           )
   | _ -> failwith "token"
 // Rule comment
 and comment  lexbuf =
   match _fslex_tables.Interpret(0,lexbuf) with
   | 0 -> ( 
-# 79 "Lexer.fsl"
+# 78 "Lexer.fsl"
                                               newline lexbuf ; lastComment <- lastComment + "\n" ; comment lexbuf 
-# 498 "Lexer.fs"
+# 493 "Lexer.fs"
           )
   | 1 -> ( 
-# 80 "Lexer.fsl"
+# 79 "Lexer.fsl"
                            newline lexbuf ; token lexbuf
-# 503 "Lexer.fs"
+# 498 "Lexer.fs"
           )
   | 2 -> ( 
-# 81 "Lexer.fsl"
+# 80 "Lexer.fsl"
                      lastComment <- lastComment + (lexeme lexbuf); comment lexbuf 
-# 508 "Lexer.fs"
+# 503 "Lexer.fs"
           )
   | _ -> failwith "comment"
 

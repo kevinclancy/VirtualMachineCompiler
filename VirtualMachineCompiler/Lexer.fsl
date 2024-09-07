@@ -62,7 +62,6 @@ rule token = parse
 | "struct"       { STRUCT }
 | "malloc"       { MALLOC }
 | "&"            { AMPERSAND }
-| "*"            { ASTERISK }
 | "->"           { RIGHTARROW }
 | "fun"          { FUN }
 | "int"          { TYPEINT }

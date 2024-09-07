@@ -59,6 +59,8 @@ and TypeDef = {
 
 type Expr =
     | FieldAccess of structExp : Expr * fieldName:string * Range
+    | AddressOf of Expr * Range
+    | Deref of Expr * Range
     | Plus of Expr * Expr * Range
     | Minus of Expr * Expr * Range
     | Times of Expr * Expr * Range

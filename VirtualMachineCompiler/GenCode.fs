@@ -64,10 +64,29 @@ and genExprL (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
         error "binary operations cannot occur as l-expressions" e.Range
     | Assign(_, _, _) ->
         error "assignments cannot occur as l-expressions" e.Range
+    | AddressOf(_, _) ->
+        error "the & operator can't occur as an l-expression" e.Range
     | FunCall(_, _, _) ->
         error "function calls cannot occur as l-expressions" e.Range
     | IntLiteral(_) ->
         error "integer literals cannot occur as l-expressions" e.Range
+    | Deref(e, _) ->
+        gen {
+            let! depth, ty, code = genExprR ctxt e
+            let! ty1 =
+                match ty with
+                | Ptr(t, _) ->
+                    gen {
+                        return t
+                    }
+                | _ ->
+                    error "Expected the target of a dereference to have a pointer type" e.Range
+            return (
+                depth,
+                ty1,
+                code
+            )
+        }
     | FieldAccess(structExpr, fieldName, rng) ->
         gen {
             let! depth1, tyStruct, codeStructL = genExprL ctxt structExpr
@@ -144,6 +163,36 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
         binOp ctxt e1 e2 Instruction.Gt
     | Lt(e1, e2, _) ->
         binOp ctxt e1 e2 Instruction.Lt
+    | AddressOf(e1, _) ->
+        gen {
+            let! depth, ty, code = genExprL ctxt e1
+            return (
+                depth,
+                Ptr(ty, noRange),
+                code
+            )
+        }
+    | Deref(e1, rng) ->
+        gen {
+            let! depth, ty, code = genExprR ctxt e1
+            let! ty1 =
+                match ty with
+                | Ptr (t, _) ->
+                    gen {
+                        return t
+                    }
+                | _ ->
+                    error "Expeceted dereferenced expression to have pointer type" rng
+            return (
+                depth,
+                ty1,
+                List.concat [
+                    code
+                    [Load <| ty1.Size ctxt.tyEnv]
+                ]
+
+            )
+        }
     | FieldAccess(structExpr, fieldName, rng) ->
         gen {
             let! depth1, tyStruct, codeStructL = genExprL ctxt structExpr

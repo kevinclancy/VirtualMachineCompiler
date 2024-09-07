@@ -3,7 +3,6 @@ module Parser
 type token = 
   | MALLOC
   | AMPERSAND
-  | ASTERISK
   | RIGHTARROW
   | FREE
   | RETURN
@@ -45,7 +44,6 @@ type token =
 type tokenId = 
     | TOKEN_MALLOC
     | TOKEN_AMPERSAND
-    | TOKEN_ASTERISK
     | TOKEN_RIGHTARROW
     | TOKEN_FREE
     | TOKEN_RETURN

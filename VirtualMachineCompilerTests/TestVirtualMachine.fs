@@ -337,6 +337,32 @@ type Fixture () =
         Assert.That( (result = 1) )
 
     [<Test>]
+    member this.refDeref () =
+        let e = parseProg """
+            typedef struct Vec { int x; int y; };
+
+            fun int main() {
+                struct Vec pos;
+                int * a;
+                int * b;
+                a <- &(pos.x);
+                b <- &(pos.x);
+                *a <- 22;
+                return *b;
+            }
+        """
+        let code =
+            match run (genProg e) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith <| "code generation failed with error: " + msg
+        let code' = resolve code
+        let result = execute code'
+
+        Assert.That( (result = 22) )
+
+    [<Test>]
     member this.countDown() =
         let e = parseProg """
             fun int main() {

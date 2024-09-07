@@ -19,11 +19,12 @@ open Syntax
 %token LPAREN RPAREN LBRACK RBRACK LSQUAREBRACK RSQUAREBRACK TYPEINT
 %token PLUS MINUS TIMES LEQ GEQ LT GT GETS SEMICOLON IF ELSE EQ
 %token WHILE FOR SWITCH CASE DEFAULT COLON STRUCT BREAK COMMA PERIOD
-%token MALLOC AMPERSAND ASTERISK RIGHTARROW FREE RETURN VOID EOF FUN TYPEDEF
+%token MALLOC AMPERSAND RIGHTARROW FREE RETURN VOID EOF FUN TYPEDEF
 
 %right GETS
 
 %left PERIOD
+%left AMPERSAND
 %left RIGHTARROW
 %left TIMES
 %left PLUS MINUS
@@ -46,6 +47,8 @@ Expr : Expr PLUS Expr  %prec PLUS  { Plus($1, $3, parseState.ResultRange) }
      | Expr GT Expr    %prec GT    { Gt($1, $3, parseState.ResultRange) }
      | Expr GETS Expr  %prec GETS  { Assign($1, $3, parseState.ResultRange) }
      | Expr PERIOD ID  %prec PERIOD { FieldAccess($1, $3, parseState.ResultRange) }
+     | AMPERSAND Expr { AddressOf($2, parseState.ResultRange) }
+     | TIMES Expr { Deref($2, parseState.ResultRange) }
      | INT { IntLiteral($1, parseState.ResultRange) }
      | LPAREN Expr RPAREN { $2 }
      | ID { Var($1, parseState.ResultRange) }
@@ -81,12 +84,12 @@ TypeDefList : TypeDef TypeDefList { $1 :: $2 }
             | TypeDef { [$1] }
 
 Type : TYPEINT { Int }
-     | Type ASTERISK { Ptr($1, parseState.ResultRange) }
+     | Type TIMES { Ptr($1, parseState.ResultRange) }
      | STRUCT ID { Struct($2, parseState.ResultRange) }
 
 VarDecl : Type ID { { varName = $2 ; ty = $1 ; rng = parseState.ResultRange } }
         | Type ID LSQUAREBRACK INT RSQUAREBRACK { { varName = $2 ; ty = Array($1, $4, parseState.ResultRange) ; rng = parseState.ResultRange } }
-  //      | Type ASTERISK ID { { varName = $3 ; ty = Ptr($1,) ; rng = parseState.ResultRange } }
+  //      | Type TIMES ID { { varName = $3 ; ty = Ptr($1,) ; rng = parseState.ResultRange } }
 
 VarDeclList : VarDecl SEMICOLON VarDeclList { $1 :: $3 }
             | VarDecl SEMICOLON { [$1] }
