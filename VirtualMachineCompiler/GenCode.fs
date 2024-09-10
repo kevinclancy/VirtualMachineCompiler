@@ -73,22 +73,7 @@ and genExprL (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
     | New(_, _) ->
         error "'new' expressions cannot occur as l-expressions" e.Range
     | Deref(e, _) ->
-        gen {
-            let! depth, ty, code = genExprR ctxt e
-            let! ty1 =
-                match ty with
-                | Ptr(t, _) ->
-                    gen {
-                        return t
-                    }
-                | _ ->
-                    error "Expected the target of a dereference to have a pointer type" e.Range
-            return (
-                depth,
-                ty1,
-                code
-            )
-        }
+        failwith "TODO: implement this to complete exercise"
     | FieldAccess(structExpr, fieldName, rng) ->
         gen {
             let! depth1, tyStruct, codeStructL = genExprL ctxt structExpr
