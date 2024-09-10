@@ -70,6 +70,8 @@ and genExprL (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
         error "function calls cannot occur as l-expressions" e.Range
     | IntLiteral(_) ->
         error "integer literals cannot occur as l-expressions" e.Range
+    | New(_, _) ->
+        error "'new' expressions cannot occur as l-expressions" e.Range
     | Deref(e, _) ->
         gen {
             let! depth, ty, code = genExprR ctxt e
@@ -319,6 +321,14 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
             let argsDepth = fst (List.fold foldArg (0,0) argResults)
 
             return (argsDepth + retAllocDepth + markDepth + funAddrDepth, funDecl.decl.retTy, code)
+        }
+    | New(ty, _) ->
+        gen {
+            return (
+                1,
+                Ptr(ty,noRange),
+                [LoadC(ty.Size ctxt.tyEnv) ; Instruction.New]
+            )
         }
 
 /// Let `n` be the value on top of the stack. `check k addrJumpTable` generates an instruction sequence

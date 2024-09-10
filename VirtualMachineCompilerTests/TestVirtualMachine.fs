@@ -363,6 +363,39 @@ type Fixture () =
         Assert.That( (result = 22) )
 
     [<Test>]
+    member this.testNew () =
+        let e = parseProg """
+            typedef struct Vec { int x; int y; };
+            struct Vec * pos;
+
+            fun int foo() {
+                pos <- new struct Vec;
+                return 0;
+            }
+
+            fun int bar() {
+                (*pos).x <- 123;
+                return 0;
+            }
+
+            fun int main() {
+                foo();
+                bar();
+                return (*pos).x;
+            }
+        """
+        let code =
+            match run (genProg e) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith <| "code generation failed with error: " + msg
+        let code' = resolve code
+        let result = execute code'
+
+        Assert.That( (result = 123) )
+
+    [<Test>]
     member this.countDown() =
         let e = parseProg """
             fun int main() {

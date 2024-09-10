@@ -73,6 +73,7 @@ type Expr =
     | Var of string * Range
     | IntLiteral of int * Range
     | FunCall of funName : string * args : List<Expr> * Range
+    | New of Ty * Range
 
     with
 
@@ -90,7 +91,8 @@ type Expr =
             | Assign(_,_,rng)
             | IntLiteral(_,rng)
             | Var(_,rng)
-            | FunCall(_,_,rng) ->
+            | FunCall(_,_,rng)
+            | New (_, rng) ->
                 rng
 
 type SwitchCase = {

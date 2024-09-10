@@ -60,12 +60,12 @@ rule token = parse
 | ":"            { COLON }
 | "int"          { TYPEINT }
 | "struct"       { STRUCT }
-| "malloc"       { MALLOC }
+| "new"          { NEW }
 | "&"            { AMPERSAND }
 | "->"           { RIGHTARROW }
 | "fun"          { FUN }
 | "int"          { TYPEINT }
-| "free"         { FREE }
+| "delete"       { DELETE }
 | "return"       { RETURN }
 | "void"         { VOID }
 | "typedef"      { TYPEDEF }
