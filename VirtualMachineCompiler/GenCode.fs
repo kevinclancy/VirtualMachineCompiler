@@ -401,31 +401,7 @@ and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
             )
         }
     | IfThenElse(cond, thenClause, elseClause, _) ->
-        gen {
-            let! condDepth, condTy, condCode = genExprR ctxt cond
-            do!
-                match condTy with
-                | Int ->
-                    pass
-                | _ ->
-                    error "Condition expected to have type int" cond.Range
-            let! thenDepth, thenCode = genStat ctxt thenClause
-            let! elseDepth, elseCode = genStat ctxt elseClause
-            let! addrElseBegin = getFreshSymbolicAddr
-            let! addrAfterElse = getFreshSymbolicAddr
-            return (
-                List.max [condDepth ; thenDepth ; elseDepth],
-                List.concat [
-                    condCode
-                    [JumpZ addrElseBegin]
-                    thenCode
-                    [Jump addrAfterElse]
-                    [SymbolicAddress addrElseBegin]
-                    elseCode
-                    [SymbolicAddress addrAfterElse]
-                ]
-            )
-        }
+        failwith "TODO: Implement this to complete exercise"
     | While(cond, body, _) ->
         gen {
             let! condDepth, condTy, condCode = genExprR ctxt cond
