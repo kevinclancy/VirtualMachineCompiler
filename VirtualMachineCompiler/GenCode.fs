@@ -596,23 +596,7 @@ let rec checkTy (ctxt : Context) (ty : Ty) : Gen<unit> =
 /// * 1 - The symbolic address for the function
 /// * 2 - A list of instructions that exectues an incarnation of the function
 let genFunc (ctxt : Context) (func : FunDecl) : Gen<int * List<Instruction>> =
-    gen {
-        let checkDecl (d : VarDecl) : Gen<unit> =
-            checkTy ctxt d.ty
-        do! doAll (List.map checkDecl func.localDecls)
-        do! doAll (List.map checkDecl func.pars)
-        let! funAddr = getFreshSymbolicAddr
-        let localDeclSize = List.sumBy (fun (d : VarDecl) -> d.ty.Size ctxt.tyEnv) func.localDecls
-        let argumentSize = List.sumBy (fun (d : VarDecl) -> d.ty.Size ctxt.tyEnv) func.pars
-        let! bodyDepth, bodyInstructions = genStat (ctxtForFunc ctxt funAddr func) func.body
-        return funAddr, List.concat [
-            [SymbolicAddress funAddr]
-            [Enter (localDeclSize + bodyDepth)]
-            [Alloc localDeclSize]
-            bodyInstructions
-            [Instruction.Return <| max (argumentSize - func.retTy.Size ctxt.tyEnv) 0]
-        ]
-    }
+    failwith "TODO: implement this to complete exercise"
 
 /// Generate a list of instructions to execute `prog`
 ///
