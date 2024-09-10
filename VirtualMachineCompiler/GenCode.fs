@@ -275,53 +275,7 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
             return (1, Int, [LoadC c])
         }
     | FunCall(name, args, rng) ->
-        gen {
-            let! funDecl =
-                match ctxt.funCtxt.TryFind(name) with
-                | Some(funDecl) ->
-                    gen {
-                        return funDecl
-                    }
-                | None ->
-                    error ("No function named " + name + " has been declared") rng
-
-            let! argResults = letAll (List.map (genExprR ctxt) args)
-            let _, argTys, argInstructionLists = List.unzip3 argResults
-
-            let actualFormalTyComparison = List.zip argTys (List.map (fun (x : VarDecl) -> x.ty) funDecl.decl.pars)
-
-            do!
-                match List.tryFindIndex (fun (S,T) -> not (Ty.IsEqual S T)) actualFormalTyComparison with
-                | Some(i) ->
-                    let (S,T) = actualFormalTyComparison[i]
-                    error ("actual type " + S.ToString() + " is not equal to " + T.ToString()) args[i].Range
-                | None ->
-                    gen {
-                        return ()
-                    }
-
-            let sizeArgs = List.sum (List.map (fun (T : Ty) -> T.Size ctxt.tyEnv) argTys)
-            let sizeRet = funDecl.decl.retTy.Size ctxt.tyEnv
-            let retAllocDepth = max (sizeRet - sizeArgs) 0
-            let markDepth = 2
-            let funAddrDepth = 1
-            let code = List.concat [
-                [Alloc retAllocDepth]
-                List.concat argInstructionLists
-                [Mark]
-                [LoadCAddr funDecl.addr]
-                [Call]
-                [Slide(max (sizeArgs - sizeRet) 0, sizeRet)]
-            ]
-
-            let foldArg ((maxDepth, currDepth) : int * int)
-                        ((argDepth, argTy, _) : int * Ty * List<Instruction>) : int * int =
-                (max maxDepth (currDepth + argDepth), currDepth + argTy.Size ctxt.tyEnv)
-
-            let argsDepth = fst (List.fold foldArg (0,0) argResults)
-
-            return (argsDepth + retAllocDepth + markDepth + funAddrDepth, funDecl.decl.retTy, code)
-        }
+        failwith "TODO: implement this to complete exercise"
     | New(ty, _) ->
         gen {
             return (
