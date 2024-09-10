@@ -249,27 +249,7 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
             )
         }
     | Var(name, rng) ->
-        gen {
-            let! loadInstruction =
-                match Map.tryFind name (ctxt.varCtxt) with
-                | Some({ address = Local(addr) ; ty = _ }) ->
-                    gen {
-                        return LoadRC addr
-                    }
-                | Some({ address = Global(addr) ; ty = _ }) ->
-                    gen {
-                        return LoadC addr
-                    }
-                | None ->
-                    error ("Undeclared variable '" + name + "'") rng
-
-
-            return (
-                ctxt.varCtxt[name].ty.Size ctxt.tyEnv,
-                ctxt.varCtxt[name].ty,
-                [loadInstruction ; Load (ctxt.varCtxt[name].ty.Size ctxt.tyEnv)]
-            )
-        }
+        failwith "TODO: Implement this to complete exercise"
     | IntLiteral(c, _) ->
         gen {
             return (1, Int, [LoadC c])
