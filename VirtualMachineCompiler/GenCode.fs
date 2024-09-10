@@ -526,32 +526,7 @@ and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
             )
         }
     | Return(returnExpr, rng) ->
-        gen {
-            let! exprDepth, exprTy, exprInstructions = genExprR ctxt returnExpr
-
-            do!
-                match Ty.IsEqual ctxt.retTy exprTy with
-                | true ->
-                    gen {
-                        return ()
-                    }
-                | false ->
-                    error ("type of return " + exprTy.ToString() + " does not match declared return type " + ctxt.retTy.ToString()) rng
-
-            let retValueAddr =
-                if ctxt.argumentSpace > ctxt.retTy.Size ctxt.tyEnv then
-                    -(ctxt.argumentSpace + 2)
-                else
-                    -(ctxt.retTy.Size ctxt.tyEnv + 2)
-            return (
-                exprDepth,
-                List.concat [
-                    exprInstructions
-                    [StoreR(retValueAddr, exprTy.Size ctxt.tyEnv)]
-                    [Instruction.Return(3 + (max (ctxt.argumentSpace - exprTy.Size ctxt.tyEnv) 0))]
-                ]
-            )
-        }
+        failwith "TODO: implement this to complete exercise"
     | ReturnVoid(rng) ->
         gen {
             return (
