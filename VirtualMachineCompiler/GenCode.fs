@@ -231,23 +231,7 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
             )
         }
     | Assign(e1, e2, rng) ->
-        gen {
-            let! depth1, ty1, code1 = genExprL ctxt e1
-            let! depth2, ty2, code2 = genExprR ctxt e2
-
-            do!
-                match Ty.IsEqual ty1 ty2 with
-                | true ->
-                    pass
-                | false ->
-                    error "Types on the left and right-hand side of assignment are unequal" rng
-
-            return (
-                max depth2 (depth1 + ty2.Size ctxt.tyEnv),
-                ty1,
-                List.concat [code2 ; code1 ; [Store (ty2.Size ctxt.tyEnv)]]
-            )
-        }
+        failwith "TODO: Implement this to complete exercise"
     | Var(name, rng) ->
         gen {
             let! loadInstruction =
