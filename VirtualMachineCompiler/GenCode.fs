@@ -175,26 +175,7 @@ and genExprR (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
             )
         }
     | Deref(e1, rng) ->
-        gen {
-            let! depth, ty, code = genExprR ctxt e1
-            let! ty1 =
-                match ty with
-                | Ptr (t, _) ->
-                    gen {
-                        return t
-                    }
-                | _ ->
-                    error "Expeceted dereferenced expression to have pointer type" rng
-            return (
-                depth,
-                ty1,
-                List.concat [
-                    code
-                    [Load <| ty1.Size ctxt.tyEnv]
-                ]
-
-            )
-        }
+        failwith "TODO: Implement this to complete exercise"
     | FieldAccess(structExpr, fieldName, rng) ->
         gen {
             let! depth1, tyStruct, codeStructL = genExprL ctxt structExpr
