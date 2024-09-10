@@ -90,38 +90,7 @@ and genExprL (ctxt : Context) (e : Expr) : Gen<int * Ty * List<Instruction>> =
             )
         }
     | FieldAccess(structExpr, fieldName, rng) ->
-        gen {
-            let! depth1, tyStruct, codeStructL = genExprL ctxt structExpr
-            let! tyStructDef =
-                match tyStruct with
-                | Struct(name, rng) ->
-                    match ctxt.tyEnv.TryFind name with
-                    | Some tyStructDef ->
-                        gen {
-                            return tyStructDef
-                        }
-                    | None ->
-                        failwith "synthesized struct types should always be defined"
-                | _ ->
-                    error $"Expected indexed expression to have struct type" rng
-            let! tyField =
-                match List.tryFind (fun d -> d.varName = fieldName) tyStructDef.fields with
-                | Some d ->
-                    gen {
-                        return d.ty
-                    }
-                | None ->
-                    error $"Struct type {tyStructDef.name} does not have a field called {fieldName}" rng
-            return (
-                max depth1 2,
-                tyField,
-                List.concat [
-                    codeStructL
-                    [LoadC <| tyStructDef.fieldOffset ctxt.tyEnv fieldName]
-                    [Add]
-                ]
-            )
-        }
+        failwith "TODO: implement this to complete the exercise"
     | Var(name, rng) ->
         gen {
             let loadInstruction =
