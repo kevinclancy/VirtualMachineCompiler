@@ -427,29 +427,7 @@ and genStat (ctxt : Context) (s : Stat) : Gen<int * List<Instruction>> =
             )
         }
     | While(cond, body, _) ->
-        gen {
-            let! condDepth, condTy, condCode = genExprR ctxt cond
-            do!
-                match condTy with
-                | Int ->
-                    pass
-                | _ ->
-                    error "Condition expected to have type int" cond.Range
-            let! bodyDepth, bodyCode = genStat ctxt body
-            let! addrBeforeCond = getFreshSymbolicAddr
-            let! addrAfterLoop = getFreshSymbolicAddr
-            return (
-                max condDepth bodyDepth,
-                List.concat [
-                    [SymbolicAddress addrBeforeCond]
-                    condCode
-                    [JumpZ addrAfterLoop]
-                    bodyCode
-                    [Jump addrBeforeCond]
-                    [SymbolicAddress addrAfterLoop]
-                ]
-            )
-        }
+        failwith "TODO: implement this to complete exercise"
     | For(init, cond, incr, body, _) ->
         gen {
             let! initDepth, initCode = genStat ctxt init
